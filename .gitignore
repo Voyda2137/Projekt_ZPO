@@ -2,7 +2,15 @@
 !jest.config.js
 *.d.ts
 node_modules
+!lambda/*.js
+!Utils/*.js
+!Interfaces/*.js
 
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+*.xml
+*.vsidx
+.vs/Projekt_ZPO/v17/.wsuo
+.vs/slnx.sqlite
+.vs/VSWorkspaceState.json
