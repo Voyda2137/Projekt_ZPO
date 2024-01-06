@@ -44,8 +44,8 @@ export const createUser = async (user: IUser): Promise<IUser | { error: string }
         name: name || '',
         surname: surname || '',
         role: {
-            isService: role.isService || false,
-            isManager: role.isManager || false,
+          isService: false,
+          isManager: false
         },
         integratorGroups: [],
         type: "user"
@@ -63,8 +63,8 @@ export const createUser = async (user: IUser): Promise<IUser | { error: string }
     }
 
     if (role) {
-        user.role.isService = role.isService || false
-        user.role.isManager = role.isManager || false
+        userParams.role.isService = role.isService || false
+        userParams.role.isManager = role.isManager || false
     }
 
     const userId = generateId()

@@ -24,8 +24,8 @@ export class ProjektZpoStack extends Stack {
       sortKey: {name: 'SK', type: dynamodb.AttributeType.STRING}
     })
     integratorTable.addGlobalSecondaryIndex({
-      indexName: 'SKIndex',
-      partitionKey: {name: 'SK', type: dynamodb.AttributeType.STRING}
+      indexName: 'loginIndex',
+      partitionKey: {name: 'login', type: dynamodb.AttributeType.STRING}
     })
 
     // Start user
@@ -51,7 +51,8 @@ export class ProjektZpoStack extends Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName
-      }
+      },
+      memorySize: 1024
     })
 
     const registerUserResource = userApi.root.addResource('register')
@@ -69,6 +70,7 @@ export class ProjektZpoStack extends Stack {
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName,
       },
+      memorySize: 1024
     })
 
     const userLoginIntegration = new apigw.LambdaIntegration(userLogin)
@@ -83,6 +85,7 @@ export class ProjektZpoStack extends Stack {
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName,
       },
+      memorySize: 1024
     })
 
     const getUserResource = userApi.root.addResource('getUser')
@@ -116,7 +119,8 @@ export class ProjektZpoStack extends Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName
-      }
+      },
+      memorySize: 1024
     })
 
     const getIntegrators = new lambda.Function(this, 'GetIntegrators', {
@@ -125,7 +129,8 @@ export class ProjektZpoStack extends Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName
-      }
+      },
+      memorySize: 1024
     })
 
     const integratorEntryLambda = new lambda.Function(this, 'IntegratorEntryLambda', {
@@ -134,7 +139,8 @@ export class ProjektZpoStack extends Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName,
-      }
+      },
+      memorySize: 1024
     })
 
     const integratorGroupLambda = new lambda.Function(this, 'IntegratorGroupLambda', {
@@ -143,11 +149,16 @@ export class ProjektZpoStack extends Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName,
-      }
+      },
+      memorySize: 1024
     })
 
     const integratorResource = integratorApi.root.addResource('integrator')
     integratorResource.addMethod('POST', new apigw.LambdaIntegration(integratorLambda))
+    integratorResource.addMethod('GET', new apigw.LambdaIntegration(getIntegrators))
+
+    integratorTable.grantReadWriteData(integratorLambda);
+    integratorTable.grantReadData(getIntegrators)
 
     const integratorEntryResource = integratorApi.root.addResource('integratorEntry')
     integratorEntryResource.addMethod('POST', new apigw.LambdaIntegration(integratorEntryLambda))
@@ -156,7 +167,6 @@ export class ProjektZpoStack extends Stack {
     integratorGroupResource.addMethod('POST', new apigw.LambdaIntegration(integratorGroupLambda))
 
     integratorTable.grantReadWriteData(integratorGroupLambda);
-    integratorTable.grantReadWriteData(integratorLambda);
     integratorTable.grantReadWriteData(integratorEntryLambda);
 
   }

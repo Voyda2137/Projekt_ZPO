@@ -13,11 +13,19 @@ exports.handler = async (event: APIGatewayEvent) => {
             console.error('Error creating user: ', createUserRequest.error)
             return {
                 statusCode: 500,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
                 body: JSON.stringify({ message: 'Internal server error' }),
             };
         }
         return {
             statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({message: 'Successfully created user!'})
         }
 
@@ -27,6 +35,10 @@ exports.handler = async (event: APIGatewayEvent) => {
         console.error('Error during registration: ', e)
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({ message: 'Internal server error' }),
         };
     }

@@ -9,16 +9,28 @@ exports.handler = async (event: APIGatewayEvent) => {
             if('error' in createIntegratorRequest){
                 return {
                     statusCode: 500,
+                    headers: {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Credentials': true,
+                    },
                     body: JSON.stringify({ message: 'Internal server error' }),
                 }
             }
             return {
                 statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
                 body: JSON.stringify(createIntegratorRequest, null, 2)
             }
         }
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({ message: 'Missing params' }),
         }
     }
@@ -26,6 +38,10 @@ exports.handler = async (event: APIGatewayEvent) => {
         console.error('Error adding integrator', e)
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({ message: 'Internal server error' }),
         };
     }

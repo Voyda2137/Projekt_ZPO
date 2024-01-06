@@ -11,11 +11,19 @@ exports.handler = async(event: APIGatewayEvent) => {
                 delete getUser.password
                 return {
                     statusCode: 200,
+                    headers: {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Credentials': true,
+                    },
                     body: JSON.stringify({user: getUser}, null, 2)
                 }
             }
             else return {
                 statusCode: 500,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
                 body: JSON.stringify({message: 'Internal Server Error'})
             }
         }
@@ -23,6 +31,10 @@ exports.handler = async(event: APIGatewayEvent) => {
             console.error('Header is missing')
             return {
                 statusCode: 500,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
                 body: JSON.stringify({message: 'Internal Server Error'})
             }
         }
@@ -31,6 +43,10 @@ exports.handler = async(event: APIGatewayEvent) => {
         console.error('Error ', e)
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({message: 'Internal Server Error'})
         }
     }

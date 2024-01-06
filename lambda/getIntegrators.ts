@@ -10,6 +10,10 @@ exports.handler = async(event: APIGatewayEvent) => {
                 const integrators = await getIntegrators(user)
                 if(integrators) return {
                     statusCode: 200,
+                    headers: {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Credentials': true,
+                    },
                     body: JSON.stringify({integrators: integrators}, null, 2)
                 }
             }
@@ -18,6 +22,10 @@ exports.handler = async(event: APIGatewayEvent) => {
         console.error('Missing header')
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({error: 'Internal server error'})
         }
     }
@@ -25,6 +33,10 @@ exports.handler = async(event: APIGatewayEvent) => {
         console.error('Error: ', e)
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({error: 'Internal server error'})
         }
     }

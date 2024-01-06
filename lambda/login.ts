@@ -9,6 +9,10 @@ exports.handler = async (event: APIGatewayEvent) => {
             const loginRequest = await userLogin({login: userObject.login, password: userObject.password})
             if(loginRequest) return {
                 statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
                 body: JSON.stringify({
                     user: {
                         login: loginRequest.login,
@@ -23,6 +27,10 @@ exports.handler = async (event: APIGatewayEvent) => {
                 console.log('Error while trying to login')
                 return {
                     statusCode: 500,
+                    headers: {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Credentials': true,
+                    },
                     body: JSON.stringify({message: 'Internal Server Error'})
                 }
             }
@@ -31,6 +39,10 @@ exports.handler = async (event: APIGatewayEvent) => {
             console.log('Missing login or password')
             return {
                 statusCode: 500,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
                 body: JSON.stringify({message: 'Internal Server Error'})
             }
         }
@@ -39,6 +51,10 @@ exports.handler = async (event: APIGatewayEvent) => {
         console.log('Error: ', e)
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({message: 'Internal Server Error'})
         }
     }
