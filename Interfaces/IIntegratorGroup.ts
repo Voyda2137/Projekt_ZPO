@@ -1,5 +1,6 @@
 
 export interface IntegratorGroup {
-    integratorGroupId?: string;
-    integratorGroupName?: string;
+    integratorGroupID?: string
+    integratorGroupName?: string
+    type: "integratorGroup"
 }

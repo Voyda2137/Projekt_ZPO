@@ -12,4 +12,5 @@ export interface IUser {
     }
     integratorGroups: IntegratorGroup[]
     type: "user"
+    manager?: string
 }

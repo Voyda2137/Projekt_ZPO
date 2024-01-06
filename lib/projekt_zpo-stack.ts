@@ -94,6 +94,21 @@ export class ProjektZpoStack extends Stack {
     getUserResource.addMethod('GET', getUserIntegration)
     integratorTable.grantReadData(getUser)
 
+    const addUserToIntegratorGroup = new lambda.Function(this, 'addUserToGroup', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'addUserToGroup.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName,
+      },
+      memorySize: 1024
+    })
+
+    integratorTable.grantReadWriteData(addUserToIntegratorGroup)
+
+    const editUserResource = userApi.root.addResource('editUser')
+    editUserResource.addMethod('PUT', new apigw.LambdaIntegration(addUserToIntegratorGroup))
+
     // End user
 
     // Start integrator
@@ -145,7 +160,7 @@ export class ProjektZpoStack extends Stack {
 
     const integratorGroupLambda = new lambda.Function(this, 'IntegratorGroupLambda', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'integratorGroup.handler',
+      handler: 'createIntegratorGroup.handler',
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName,

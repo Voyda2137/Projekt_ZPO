@@ -1,16 +1,11 @@
-import {IUser} from "../Interfaces/IUser";
-import {createUser} from "./Utils/DatabaseUtils";
 import {APIGatewayEvent} from "aws-lambda";
-
-const table = process.env.DYNAMODB_TABLE_NAME || ''
+import {createIntegratorGroup} from "./Utils/DatabaseUtils";
 
 exports.handler = async (event: APIGatewayEvent) => {
     try {
-        const userObject: IUser = JSON.parse(event.body || '')
-        const createUserRequest = await createUser(userObject)
-
-        if('error' in createUserRequest){
-            console.error('Error creating user: ', createUserRequest.error)
+        const {integratorGroupName, userID} = JSON.parse(event.body || '')
+        const createIntegratorGroupRequest = await createIntegratorGroup(integratorGroupName, userID)
+        if('error' in createIntegratorGroupRequest){
             return {
                 statusCode: 500,
                 headers: {
@@ -18,7 +13,7 @@ exports.handler = async (event: APIGatewayEvent) => {
                     'Access-Control-Allow-Credentials': true,
                 },
                 body: JSON.stringify({ message: 'Internal server error' }),
-            };
+            }
         }
         return {
             statusCode: 200,
@@ -26,11 +21,11 @@ exports.handler = async (event: APIGatewayEvent) => {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Credentials': true,
             },
-            body: JSON.stringify({message: 'Successfully created user!'})
+            body: JSON.stringify(createIntegratorGroupRequest, null, 2)
         }
     }
     catch (e) {
-        console.error('Error during registration: ', e)
+        console.error("Error: ", e)
         return {
             statusCode: 500,
             headers: {
@@ -38,6 +33,6 @@ exports.handler = async (event: APIGatewayEvent) => {
                 'Access-Control-Allow-Credentials': true,
             },
             body: JSON.stringify({ message: 'Internal server error' }),
-        };
+        }
     }
 }
