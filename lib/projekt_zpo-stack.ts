@@ -1,17 +1,11 @@
-import { Duration, Stack, StackProps } from 'aws-cdk-lib/core';
+import {Duration, Stack, StackProps} from 'aws-cdk-lib/core';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
-import { Construct } from 'constructs';
+import {Construct} from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as apigw from 'aws-cdk-lib/aws-apigateway'
-import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
-import * as iam from 'aws-cdk-lib/aws-iam'
-import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { CognitoIdentityProviderClient, AdminCreateUserCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { IdentityPool, UserPoolAuthenticationProvider } from "@aws-cdk/aws-cognito-identitypool-alpha";
 
 export class ProjektZpoStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -25,85 +19,145 @@ export class ProjektZpoStack extends Stack {
 
     topic.addSubscription(new subs.SqsSubscription(queue))
 
-
-   // Start user
-    const userPool = new cognito.UserPool(this, 'UserPool', {
-      selfSignUpEnabled: true,
-      autoVerify: { email: true },
-      signInAliases: { username: true, email: true },
-      standardAttributes: {
-        email: { required: true, mutable: true },
-        givenName: { required: true, mutable: true },
-        familyName: { required: true, mutable: true },
-        preferredUsername: { required: true, mutable: true }
-      }
+    const integratorTable = new dynamodb.Table(this, 'IntegratorTable', {
+      partitionKey: {name: 'PK', type: dynamodb.AttributeType.STRING},
+      sortKey: {name: 'SK', type: dynamodb.AttributeType.STRING}
+    })
+    integratorTable.addGlobalSecondaryIndex({
+      indexName: 'SKIndex',
+      partitionKey: {name: 'SK', type: dynamodb.AttributeType.STRING}
     })
 
-    const identityPool = new IdentityPool(this, 'IdentityPool', {
-      identityPoolName: 'IdentityPool',
-      authenticationProviders: {
-        userPools: [
-          new UserPoolAuthenticationProvider({
-            userPool
-          })
-        ]
-      }
-    })
-
-    const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
-      userPool,
-    })
-
-    const userTable = new dynamodb.Table(this, 'UserTable', {
-      partitionKey: {
-        name: 'UserID',
-        type: dynamodb.AttributeType.STRING,
-      },
-    })
-
-    userTable.grantReadWriteData(identityPool.authenticatedRole)
-
-    const testCognitoRole = new iam.Role(this, 'TestCognitoRole', {
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-    })
-
-    const testCognito = new lambda.Function(this, 'TestCognito', {
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'testCognito.handler',
-      code: lambda.Code.fromAsset('lambda'),
-      role: testCognitoRole,
-      environment: {
-        USER_POOL_ID: userPool.userPoolId,
-        USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
-        DYNAMODB_TABLE_NAME: userTable.tableName,
-      }
-    })
-
-    userTable.grantReadWriteData(testCognitoRole);
-
-    testCognitoRole.addToPolicy(
-        new iam.PolicyStatement({
-          actions: ['cognito-idp:AdminCreateUser'],
-          resources: [userPool.userPoolArn],
-        })
-    )
+    // Start user
 
     const userApi = new apigw.RestApi(this, 'user', {
-      restApiName: 'user-api',
+      restApiName: 'userApi',
       defaultCorsPreflightOptions: {
         allowOrigins: apigw.Cors.ALL_ORIGINS,
         allowMethods: apigw.Cors.ALL_METHODS,
         allowHeaders: apigw.Cors.DEFAULT_HEADERS,
       },
+      defaultMethodOptions: {
+        authorizationType: apigw.AuthorizationType.NONE,
+        authorizer: undefined,
+        authorizationScopes: undefined,
+        apiKeyRequired: false
+      }
     })
 
-    const userResource = userApi.root.addResource('testCognito')
-    const userIntegration = new apigw.LambdaIntegration(testCognito)
+    const registerUser = new lambda.Function(this, 'registerUser', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'register.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName
+      }
+    })
 
-    userResource.addMethod('POST', userIntegration)
+    const registerUserResource = userApi.root.addResource('register')
+    const registerUserIntegration = new apigw.LambdaIntegration(registerUser)
+
+    registerUserResource.addMethod('POST', registerUserIntegration)
+    integratorTable.grantReadWriteData(registerUser)
+
+    const userLoginResource = userApi.root.addResource('login')
+
+    const userLogin = new lambda.Function(this, 'userLogin', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'login.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName,
+      },
+    })
+
+    const userLoginIntegration = new apigw.LambdaIntegration(userLogin)
+
+    userLoginResource.addMethod('POST', userLoginIntegration)
+    integratorTable.grantReadData(userLogin)
+
+    const getUser = new lambda.Function(this, 'getUser', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'getUser.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName,
+      },
+    })
+
+    const getUserResource = userApi.root.addResource('getUser')
+    const getUserIntegration = new apigw.LambdaIntegration(getUser)
+
+    getUserResource.addMethod('GET', getUserIntegration)
+    integratorTable.grantReadData(getUser)
+
     // End user
 
     // Start integrator
-    
+
+    const integratorApi = new apigw.RestApi(this, 'IntegratorApi', {
+      restApiName: 'IntegratorAPI',
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigw.Cors.ALL_ORIGINS,
+        allowMethods: apigw.Cors.ALL_METHODS,
+        allowHeaders: apigw.Cors.DEFAULT_HEADERS,
+      },
+      defaultMethodOptions: {
+        authorizationType: apigw.AuthorizationType.NONE,
+        authorizer: undefined,
+        authorizationScopes: undefined,
+        apiKeyRequired: false
+      }
+    })
+
+    const integratorLambda = new lambda.Function(this, 'IntegratorLambda', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'integrator.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName
+      }
+    })
+
+    const getIntegrators = new lambda.Function(this, 'GetIntegrators', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'getIntegrators.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName
+      }
+    })
+
+    const integratorEntryLambda = new lambda.Function(this, 'IntegratorEntryLambda', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'integratorEntry.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName,
+      }
+    })
+
+    const integratorGroupLambda = new lambda.Function(this, 'IntegratorGroupLambda', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'integratorGroup.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName,
+      }
+    })
+
+    const integratorResource = integratorApi.root.addResource('integrator')
+    integratorResource.addMethod('POST', new apigw.LambdaIntegration(integratorLambda))
+
+    const integratorEntryResource = integratorApi.root.addResource('integratorEntry')
+    integratorEntryResource.addMethod('POST', new apigw.LambdaIntegration(integratorEntryLambda))
+
+    const integratorGroupResource = integratorApi.root.addResource('integratorGroup')
+    integratorGroupResource.addMethod('POST', new apigw.LambdaIntegration(integratorGroupLambda))
+
+    integratorTable.grantReadWriteData(integratorGroupLambda);
+    integratorTable.grantReadWriteData(integratorLambda);
+    integratorTable.grantReadWriteData(integratorEntryLambda);
+
   }
 }

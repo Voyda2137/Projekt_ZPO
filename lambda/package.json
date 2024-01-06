@@ -1,8 +1,12 @@
 {
   "dependencies": {
-    "aws-sdk": "^2.1515.0"
+    "amazon-cognito-identity-js": "^6.3.7",
+    "aws-sdk": "^2.1515.0",
+    "axios": "^1.6.3",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.5",
     "eslint": "^8.55.0"
   },
   "scripts": {

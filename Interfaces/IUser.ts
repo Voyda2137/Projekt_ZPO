@@ -1,9 +1,15 @@
+import {IntegratorGroup} from "./IIntegratorGroup";
+
 export interface IUser {
-    userID: string
+    userID?: string
+    login?: string
     password?: string
-    email?: string
-    tmpPassword?: string
-    givenName: string
-    familyName: string
-    username: string
+    name?: string
+    surname?: string
+    role: {
+        isService: boolean
+        isManager: boolean
+    }
+    integratorGroups: IntegratorGroup[]
+    type: "user"
 }
