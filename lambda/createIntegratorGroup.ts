@@ -8,14 +8,12 @@ exports.handler = async (event: APIGatewayEvent) => {
         const {integratorGroupName, userID} = JSON.parse(event.body || '')
         const createIntegratorGroupRequest = await createIntegratorGroup(integratorGroupName, userID)
         if('error' in createIntegratorGroupRequest){
+            console.error('Error in createIntegratorGroupRequest: ', createIntegratorGroupRequest.error)
             return defaultErrorMessage
         }
         return {
             statusCode: 200,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Credentials': true,
-            },
+            headers: defaultHeaders,
             body: JSON.stringify(createIntegratorGroupRequest, null, 2)
         }
     }

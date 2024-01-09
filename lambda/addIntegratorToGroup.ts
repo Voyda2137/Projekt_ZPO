@@ -9,15 +9,14 @@ exports.handler = async (event: APIGatewayEvent) => {
         const addIntegratorToGroupRequest = await addIntegratorToGroup(integratorID, integratorGroupID, userID)
         if(addIntegratorToGroupRequest) return {
             statusCode: 200,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Credentials': true,
-            },
+            headers: defaultHeaders,
             body: JSON.stringify({ message: 'Successfully added integrator to group' }),
         }
+        console.error('addIntegratorToGroupRequest failed')
         return defaultErrorMessage
     }
     catch(e) {
+        console.error('Error catched: ', e)
         return defaultErrorMessage
     }
 }

@@ -202,8 +202,24 @@ export const getIntegrators = async (user: IUser): Promise<Integrator[] | boolea
         return false
     }
     else {
-        return false // tu później będzie get na integratorGroups i stąd wyciągne integratory pojedynczo
+        const integratorGroupsObject: AWS.DynamoDB.DocumentClient.ExpressionAttributeValueMap = {};
+        user.integratorGroups.forEach((integrator, idx) => {
+            const groupKey = ":group" + idx
+            integratorGroupsObject[groupKey] = { S: integrator }
+        })
+        const getIntegratorsRequest = {
+            TableName: process.env.DYNAMODB_TABLE_NAME || '',
+            FilterExpression: user.integratorGroups.map((_, idx) => `integratorGroup IN (:group${idx})`).join(' OR '),
+            ExpressionAttributeValues: integratorGroupsObject,
+        }
 
+        const getIntegrators = await dynamoDB.scan(getIntegratorsRequest).promise()
+        if(getIntegrators.Items && getIntegrators.Items.length > 0){
+            return  getIntegrators.Items.map(item => {
+                return DynamoDB.Converter.unmarshall(item) as Integrator;
+            });
+        }
+        return false
     }
 }
 
@@ -284,4 +300,28 @@ export const addIntegratorToGroup = async(integratorID: string, integratorGroupI
         }
     }
     throw new Error('User is not authorized to add an integrator to group')
+}
+
+export const getWorkers = async(managerID: string): Promise<IUser[] | { error: string }> => {
+    try {
+        const getWorkersRequest = {
+            TableName: process.env.DYNAMODB_TABLE_NAME || '',
+            FilterExpression: 'manager = :value',
+            ExpressionAttributeValues: {
+                ':value': {S: managerID}
+            }
+        }
+        const getWorkersQuery = await dynamoDB.scan(getWorkersRequest).promise()
+        if(getWorkersQuery.Items && getWorkersQuery.Items.length > 0){
+            return getWorkersQuery.Items.map(item => {
+                const user = DynamoDB.Converter.unmarshall(item) as IUser
+                delete(user.password)
+                return user
+            })
+        }
+        return {error: 'No workers found'}
+    }
+    catch (e) {
+        return {error: `Error getting users: ${e}`}
+    }
 }

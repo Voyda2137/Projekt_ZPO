@@ -1,7 +1,4 @@
-import {Duration, Stack, StackProps} from 'aws-cdk-lib/core';
-import * as sns from 'aws-cdk-lib/aws-sns';
-import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
-import * as sqs from 'aws-cdk-lib/aws-sqs';
+import {Stack, StackProps} from 'aws-cdk-lib/core';
 import {Construct} from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as apigw from 'aws-cdk-lib/aws-apigateway'
@@ -10,14 +7,6 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 export class ProjektZpoStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props)
-
-    const queue = new sqs.Queue(this, 'ProjektZpoQueue', {
-      visibilityTimeout: Duration.seconds(300)
-    })
-
-    const topic = new sns.Topic(this, 'ProjektZpoTopic')
-
-    topic.addSubscription(new subs.SqsSubscription(queue))
 
     const integratorTable = new dynamodb.Table(this, 'IntegratorTable', {
       partitionKey: {name: 'PK', type: dynamodb.AttributeType.STRING},
@@ -118,6 +107,29 @@ export class ProjektZpoStack extends Stack {
     const editUserResource = userApi.root.addResource('editUser')
     editUserResource.addMethod('PUT', new apigw.LambdaIntegration(addUserToIntegratorGroup))
 
+    const getWorkers = new lambda.Function(this, 'getWorkers', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'getWorkers.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName,
+      },
+      memorySize: 1024
+    })
+
+    const getWorkersResource = userApi.root.addResource('getWorkers')
+    getWorkersResource.addMethod('GET', new apigw.LambdaIntegration(getWorkers), {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true
+          }
+        }
+      ]
+    })
+
+    integratorTable.grantReadData(getWorkers)
     // End user
 
     // Start integrator

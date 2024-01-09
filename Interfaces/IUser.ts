@@ -1,5 +1,3 @@
-import {IntegratorGroup} from "./IIntegratorGroup";
-
 export interface IUser {
     userID?: string
     login?: string
@@ -10,7 +8,7 @@ export interface IUser {
         isService: boolean
         isManager: boolean
     }
-    integratorGroups: IntegratorGroup[]
+    integratorGroups: string[]
     type: "user"
     manager?: string
 }

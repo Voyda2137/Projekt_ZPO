@@ -11,10 +11,7 @@ exports.handler = async (event: APIGatewayEvent) => {
             const loginRequest = await userLogin({login: userObject.login, password: userObject.password})
             if(loginRequest) return {
                 statusCode: 200,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Credentials': true,
-                },
+                headers: defaultHeaders,
                 body: JSON.stringify({
                     user: {
                         login: loginRequest.login,

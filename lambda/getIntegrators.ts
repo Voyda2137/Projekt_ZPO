@@ -1,7 +1,6 @@
 import {APIGatewayEvent} from "aws-lambda";
 import {getIntegrators, getUserByLogin} from "./Utils/DatabaseUtils";
 import {defaultErrorMessage} from "./Constants/defaultErrorMessage";
-import {defaultHeaders} from "./Constants/defaultHeaders";
 
 exports.handler = async(event: APIGatewayEvent) => {
     try {
@@ -34,6 +33,8 @@ exports.handler = async(event: APIGatewayEvent) => {
                     },
                     body: JSON.stringify({integrators: integrators}, null, 2)
                 }
+                console.error('No integrators found')
+                return defaultErrorMessage
             }
             console.error('No user found')
             return defaultErrorMessage
