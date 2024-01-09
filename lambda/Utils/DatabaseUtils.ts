@@ -58,7 +58,10 @@ export const createUser = async (user: IUser): Promise<IUser | { error: string }
 
     const { login, password, name, surname, role, manager }: IUser = user
 
+    const userID = generateId()
+
     const userParams: IUser = {
+        userID,
         login,
         password: password || '',
         name: name || '',
@@ -87,29 +90,29 @@ export const createUser = async (user: IUser): Promise<IUser | { error: string }
         userParams.role.isService = role.isService || false
         userParams.role.isManager = role.isManager || false
     }
+    const item: Record<string, any> = {
+        PK: { S: userParams.userID },
+        SK: { S: userParams.type },
+        login: { S: userParams.login },
+        name: { S: userParams.name },
+        surname: { S: userParams.surname },
+        password: { S: userParams.password },
+        role: {
+            M: {
+                isService: { BOOL: userParams.role.isService },
+                isManager: { BOOL: userParams.role.isManager }
+            }
+        },
+        integratorGroups: { L: [] }
+    };
+
     if (manager) {
-        userParams.manager = manager
+        item.manager = {S: manager}
     }
-    const userId = generateId()
 
     const params: DynamoDB.PutItemInput = {
         TableName: process.env.DYNAMODB_TABLE_NAME || '',
-        Item: {
-            PK: { S: userId },
-            SK: { S: userParams.type},
-            login: {S: userParams.login},
-            name: {S: userParams.name},
-            surname: {S: userParams.surname},
-            password: {S: userParams.password},
-            role: {
-                M: {
-                    isService: {BOOL: userParams.role.isService},
-                    isManager: {BOOL: userParams.role.isManager}
-                }
-            },
-            manager: {S: manager},
-            integratorGroups: {L: []}
-        },
+        Item: item
     }
     try{
         await dynamoDB.putItem(params).promise()
@@ -149,16 +152,16 @@ export const userLogin = async ({login, password}: {login: string, password: str
 export const createIntegrator = async({location, serialNumber, userID}: {location: string, serialNumber: string, userID: string}):Promise<Integrator| { error: string }> => {
     if(!location || !serialNumber || !userID) return {error: 'Missing params'}
     const user = await getUserByID(userID)
-    if(!user.role.isManager || !user.role.isService) return {error: 'Unauthorized'}
+    if(!user.role.isManager && !user.role.isService) return {error: `Unauthorized, user: ${user.role.isManager}`}
     const integratorID = generateId()
     const createIngergratorParams: Integrator = {
         integratorID: integratorID,
         location: location,
         serialNumber: serialNumber,
-        IntegratorGroup: [],
         IntegratorEntries: [],
         type: "integrator"
     }
+
     const createIntegratorRequest: DynamoDB.PutItemInput = {
         TableName: process.env.DYNAMODB_TABLE_NAME || '',
         Item: {
@@ -167,7 +170,6 @@ export const createIntegrator = async({location, serialNumber, userID}: {locatio
             userID: {S: userID},
             location: {S: createIngergratorParams.location},
             serialNumber: {S: createIngergratorParams.serialNumber},
-            IntegratorGroup: {L: []},
             IntegratorEntries: {L: []}
         }
     }
@@ -177,7 +179,7 @@ export const createIntegrator = async({location, serialNumber, userID}: {locatio
     }
     catch (e) {
         console.error('Error creating integrator', e)
-        return {error: 'Error creating integrator'}
+        return {error: `Error creating integrator: ${e}`}
     }
 }
 
@@ -186,12 +188,12 @@ export const getIntegrators = async (user: IUser): Promise<Integrator[] | boolea
     if(isService){
         const getIntegratorsParams = {
             TableName: process.env.DYNAMODB_TABLE_NAME || '',
-            KeyConditionExpression: 'SK = :type',
+            FilterExpression: 'SK = :type',
             ExpressionAttributeValues: {
                 ":type": {S: "integrator"}
             }
         }
-        const result = await dynamoDB.query(getIntegratorsParams).promise()
+        const result = await dynamoDB.scan(getIntegratorsParams).promise()
         if(result.Items && result.Items.length > 0){
             return  result.Items.map(item => {
                 return DynamoDB.Converter.unmarshall(item) as Integrator;
@@ -201,6 +203,7 @@ export const getIntegrators = async (user: IUser): Promise<Integrator[] | boolea
     }
     else {
         return false // tu później będzie get na integratorGroups i stąd wyciągne integratory pojedynczo
+
     }
 }
 
@@ -259,4 +262,26 @@ export const createIntegratorGroup = async (integratorGroupName: string, userID:
         }
     }
     throw new Error('User is not authorized to create an Integrator Group')
+}
+
+export const addIntegratorToGroup = async(integratorID: string, integratorGroupID: string, userID: string): Promise<boolean> => {
+    const user = await getUserByID(userID)
+    if(user.role.isManager || user.role.isService) {
+        try {
+            const addIntegratorToGroupParams = {
+                TableName: process.env.DYNAMODB_TABLE_NAME || '',
+                Key: {PK: {S: integratorID}, SK: {S: 'integrator'}},
+                UpdateExpression: 'SET integratorGroup = :integratorGroupID',
+                ExpressionAttributeValues: {
+                    ':integratorGroupID': {S: integratorGroupID}
+                }
+            }
+            await dynamoDB.updateItem(addIntegratorToGroupParams).promise()
+            return true
+        } catch (e) {
+            console.error('Error adding integrator to group')
+            return false
+        }
+    }
+    throw new Error('User is not authorized to add an integrator to group')
 }

@@ -1,5 +1,7 @@
 import {APIGatewayEvent} from "aws-lambda";
 import {addUserToIntegratorGroup} from "./Utils/DatabaseUtils";
+import {defaultHeaders} from "./Constants/defaultHeaders";
+import {defaultErrorMessage} from "./Constants/defaultErrorMessage";
 
 exports.handler = async (event: APIGatewayEvent) => {
     try {
@@ -25,13 +27,6 @@ exports.handler = async (event: APIGatewayEvent) => {
     }
     catch (e) {
         console.error('Internal server error', e)
-        return {
-            statusCode: 500,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Credentials': true,
-            },
-            body: JSON.stringify({ message: 'Internal server error' })
-        }
+        return defaultErrorMessage
     }
 }

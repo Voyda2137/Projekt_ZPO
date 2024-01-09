@@ -35,7 +35,7 @@ export class ProjektZpoStack extends Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: apigw.Cors.ALL_ORIGINS,
         allowMethods: apigw.Cors.ALL_METHODS,
-        allowHeaders: apigw.Cors.DEFAULT_HEADERS,
+        allowHeaders: ['*']
       },
       defaultMethodOptions: {
         authorizationType: apigw.AuthorizationType.NONE,
@@ -91,7 +91,16 @@ export class ProjektZpoStack extends Stack {
     const getUserResource = userApi.root.addResource('getUser')
     const getUserIntegration = new apigw.LambdaIntegration(getUser)
 
-    getUserResource.addMethod('GET', getUserIntegration)
+    getUserResource.addMethod('GET', getUserIntegration, {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true
+          }
+        }
+      ]
+    })
     integratorTable.grantReadData(getUser)
 
     const addUserToIntegratorGroup = new lambda.Function(this, 'addUserToGroup', {
@@ -118,7 +127,7 @@ export class ProjektZpoStack extends Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: apigw.Cors.ALL_ORIGINS,
         allowMethods: apigw.Cors.ALL_METHODS,
-        allowHeaders: apigw.Cors.DEFAULT_HEADERS,
+        allowHeaders: ['*'],
       },
       defaultMethodOptions: {
         authorizationType: apigw.AuthorizationType.NONE,
@@ -168,20 +177,43 @@ export class ProjektZpoStack extends Stack {
       memorySize: 1024
     })
 
+    const addIntegratorToGroupLambda = new lambda.Function(this, 'AddIntegratorToGroupLambda', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'addIntegratorToGroup.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName,
+      },
+      memorySize: 1024
+    })
+
     const integratorResource = integratorApi.root.addResource('integrator')
     integratorResource.addMethod('POST', new apigw.LambdaIntegration(integratorLambda))
-    integratorResource.addMethod('GET', new apigw.LambdaIntegration(getIntegrators))
+    integratorResource.addMethod('GET', new apigw.LambdaIntegration(getIntegrators), {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true
+          }
+        }
+      ]
+    })
 
     integratorTable.grantReadWriteData(integratorLambda);
     integratorTable.grantReadData(getIntegrators)
 
+    const integratorGroupResource = integratorApi.root.addResource('integratorGroup')
+    integratorGroupResource.addMethod('POST', new apigw.LambdaIntegration(integratorGroupLambda))
+    integratorGroupResource.addMethod('PUT', new apigw.LambdaIntegration(addIntegratorToGroupLambda))
+
+    integratorTable.grantReadWriteData(integratorGroupLambda);
+    integratorTable.grantReadWriteData(addUserToIntegratorGroup)
+    integratorTable.grantReadWriteData(addIntegratorToGroupLambda)
+
     const integratorEntryResource = integratorApi.root.addResource('integratorEntry')
     integratorEntryResource.addMethod('POST', new apigw.LambdaIntegration(integratorEntryLambda))
 
-    const integratorGroupResource = integratorApi.root.addResource('integratorGroup')
-    integratorGroupResource.addMethod('POST', new apigw.LambdaIntegration(integratorGroupLambda))
-
-    integratorTable.grantReadWriteData(integratorGroupLambda);
     integratorTable.grantReadWriteData(integratorEntryLambda);
 
   }

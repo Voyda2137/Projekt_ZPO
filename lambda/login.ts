@@ -1,6 +1,8 @@
 import {IUser} from "../Interfaces/IUser";
 import {userLogin} from "./Utils/DatabaseUtils";
 import {APIGatewayEvent} from "aws-lambda";
+import {defaultHeaders} from "./Constants/defaultHeaders";
+import {defaultErrorMessage} from "./Constants/defaultErrorMessage";
 
 exports.handler = async (event: APIGatewayEvent) => {
     try {
@@ -25,37 +27,16 @@ exports.handler = async (event: APIGatewayEvent) => {
             }
             else {
                 console.log('Error while trying to login')
-                return {
-                    statusCode: 500,
-                    headers: {
-                        'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Allow-Credentials': true,
-                    },
-                    body: JSON.stringify({message: 'Internal Server Error'})
-                }
+                return defaultErrorMessage
             }
         }
         else {
             console.log('Missing login or password')
-            return {
-                statusCode: 500,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Credentials': true,
-                },
-                body: JSON.stringify({message: 'Internal Server Error'})
-            }
+            return defaultErrorMessage
         }
     }
     catch (e) {
         console.log('Error: ', e)
-        return {
-            statusCode: 500,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Credentials': true,
-            },
-            body: JSON.stringify({message: 'Internal Server Error'})
-        }
+        return defaultErrorMessage
     }
 }

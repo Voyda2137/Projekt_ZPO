@@ -1,4 +1,3 @@
-import {IntegratorGroup} from "./IIntegratorGroup";
 import {IntegratorEntry} from "./IIntegratorEntry";
 
 export interface Integrator {
@@ -6,7 +5,7 @@ export interface Integrator {
     location?: string
     serialNumber?: string
     userID?: string
-    IntegratorGroup?: IntegratorGroup[]
+    IntegratorGroup?: string
     IntegratorEntries?: IntegratorEntry[]
     type?: "integrator"
 }
