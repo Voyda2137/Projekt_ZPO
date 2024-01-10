@@ -3,7 +3,8 @@
     "amazon-cognito-identity-js": "^6.3.7",
     "aws-sdk": "^2.1515.0",
     "axios": "^1.6.3",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "moment": "^2.30.1"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.5",

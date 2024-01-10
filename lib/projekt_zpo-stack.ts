@@ -1,4 +1,4 @@
-import {Stack, StackProps} from 'aws-cdk-lib/core';
+import {Duration, Stack, StackProps} from 'aws-cdk-lib/core';
 import {Construct} from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as apigw from 'aws-cdk-lib/aws-apigateway'
@@ -166,12 +166,13 @@ export class ProjektZpoStack extends Stack {
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName
       },
-      memorySize: 1024
+      memorySize: 4096,
+      timeout: Duration.seconds(10)
     })
 
     const integratorEntryLambda = new lambda.Function(this, 'IntegratorEntryLambda', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'integratorEntry.handler',
+      handler: 'createIntegratorEntry.handler',
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName,

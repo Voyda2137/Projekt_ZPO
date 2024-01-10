@@ -1,8 +1,8 @@
 
 export interface IntegratorEntry {
-    utcCreationTime: string;
-    utcDateTime: string ;
-    // rate at which the stones were crushed - kg/60s
+    utcCreationTime: number;
+    utcDateTime: number ;
+    // rate at which the stones were crushed - kg/h
     rate: number;
     // tape speed - m/s
     speed: number;

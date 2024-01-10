@@ -2,6 +2,9 @@ import {IUser} from "../../Interfaces/IUser";
 import {DynamoDB} from "aws-sdk";
 import {Integrator} from "../../Interfaces/IIntegrator";
 import {IntegratorGroup} from "../../Interfaces/IIntegratorGroup";
+import {IntegratorEntry} from "../../Interfaces/IIntegratorEntry";
+
+const moment = require('moment')
 
 const crypto = require('crypto')
 
@@ -202,7 +205,7 @@ export const getIntegrators = async (user: IUser): Promise<Integrator[] | boolea
         return false
     }
     else {
-        const integratorGroupsObject: AWS.DynamoDB.DocumentClient.ExpressionAttributeValueMap = {};
+        const integratorGroupsObject: DynamoDB.DocumentClient.ExpressionAttributeValueMap = {};
         user.integratorGroups.forEach((integrator, idx) => {
             const groupKey = ":group" + idx
             integratorGroupsObject[groupKey] = { S: integrator }
@@ -323,5 +326,41 @@ export const getWorkers = async(managerID: string): Promise<IUser[] | { error: s
     }
     catch (e) {
         return {error: `Error getting users: ${e}`}
+    }
+}
+
+export const createEntry = async(integratorID: string, utcDateTime: number, rate: number, speed: number, total: number): Promise<boolean | {error: string}> => {
+    try {
+        const integratorEntry: IntegratorEntry = {
+            utcDateTime: utcDateTime,
+            utcCreationTime: +moment(),
+            rate: rate,
+            speed: speed,
+            total: total
+        }
+        const createEntryRequest = {
+            TableName: process.env.DYNAMODB_TABLE_NAME || '',
+            Key: {PK: {S: integratorID}, SK: {S: 'integrator'}},
+            UpdateExpression: 'SET IntegratorEntries = list_append(IntegratorEntries, :integratorEntry)',
+            ExpressionAttributeValues: {
+                ':integratorEntry': { L: [{
+                    M: {
+                        utcDateTime: { N: integratorEntry.utcDateTime.toString() },
+                        utcCreationTime: { N: integratorEntry.utcCreationTime.toString() },
+                        rate: { N: integratorEntry.rate.toString() },
+                        speed: { N: integratorEntry.speed.toString() },
+                        total: { N: integratorEntry.total.toString() }
+                    }
+                }]}
+            }
+        }
+        const query = await dynamoDB.updateItem(createEntryRequest).promise()
+        if(query.$response.httpResponse.statusCode === 200){
+            return true
+        }
+        else return {error: `Could not create the entry: ${query.$response.error}`}
+    }
+    catch (e) {
+        return {error: `${e}`}
     }
 }
