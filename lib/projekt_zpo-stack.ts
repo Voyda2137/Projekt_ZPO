@@ -166,7 +166,7 @@ export class ProjektZpoStack extends Stack {
       environment: {
         DYNAMODB_TABLE_NAME: integratorTable.tableName
       },
-      memorySize: 4096,
+      memorySize: 3008,
       timeout: Duration.seconds(10)
     })
 
