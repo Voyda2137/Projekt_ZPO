@@ -200,6 +200,16 @@ export class ProjektZpoStack extends Stack {
       memorySize: 1024
     })
 
+    const getIntegratorGroupsLambda = new lambda.Function(this, 'GetIntegratorGroups', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'getIntegratorGroups.handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        DYNAMODB_TABLE_NAME: integratorTable.tableName,
+      },
+      memorySize: 1024
+    })
+
     const integratorResource = integratorApi.root.addResource('integrator')
     integratorResource.addMethod('POST', new apigw.LambdaIntegration(integratorLambda))
     integratorResource.addMethod('GET', new apigw.LambdaIntegration(getIntegrators), {
@@ -219,10 +229,21 @@ export class ProjektZpoStack extends Stack {
     const integratorGroupResource = integratorApi.root.addResource('integratorGroup')
     integratorGroupResource.addMethod('POST', new apigw.LambdaIntegration(integratorGroupLambda))
     integratorGroupResource.addMethod('PUT', new apigw.LambdaIntegration(addIntegratorToGroupLambda))
+    integratorGroupResource.addMethod('GET', new apigw.LambdaIntegration(getIntegratorGroupsLambda), {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true
+          }
+        }
+      ]
+    })
 
     integratorTable.grantReadWriteData(integratorGroupLambda);
     integratorTable.grantReadWriteData(addUserToIntegratorGroup)
     integratorTable.grantReadWriteData(addIntegratorToGroupLambda)
+    integratorTable.grantReadData(getIntegratorGroupsLambda)
 
     const integratorEntryResource = integratorApi.root.addResource('integratorEntry')
     integratorEntryResource.addMethod('POST', new apigw.LambdaIntegration(integratorEntryLambda))

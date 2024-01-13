@@ -305,6 +305,55 @@ export const addIntegratorToGroup = async(integratorID: string, integratorGroupI
     throw new Error('User is not authorized to add an integrator to group')
 }
 
+export const getIntegratorGroups = async(userID: string) =>{
+    const user = await getUserByID(userID)
+    if(user.role.isService){
+        const getIntegratorGroupsParams = {
+            TableName: process.env.DYNAMODB_TABLE_NAME || '',
+            FilterExpression: 'SK = :type',
+            ExpressionAttributeValues: {
+                ":type": {S: "integratorGroup"}
+            }
+        }
+        const result = await dynamoDB.scan(getIntegratorGroupsParams).promise()
+        if(result.Items && result.Items.length > 0){
+            return  result.Items.map(item => {
+                return DynamoDB.Converter.unmarshall(item) as IntegratorGroup;
+            });
+        }
+        return false
+    }
+    else {
+        const integratorGroupsMap: { S: string }[] = [];
+        user.integratorGroups.forEach(group => {
+            integratorGroupsMap.push({
+                S: group
+            });
+        });
+
+        const keys = integratorGroupsMap.map(item => ({
+            SK: { S: 'integratorGroup' },
+            PK: { S: item.S }
+        }));
+
+        const getIntegratorGroupsParams: DynamoDB.DocumentClient.BatchGetItemInput = {
+            RequestItems: {
+                [process.env.DYNAMODB_TABLE_NAME || '']: {
+                    Keys: keys
+                }
+            }
+        };
+
+        const result = await dynamoDB.batchGetItem(getIntegratorGroupsParams).promise();
+        if (result.Responses && result.Responses[process.env.DYNAMODB_TABLE_NAME || '']) {
+            return result.Responses[process.env.DYNAMODB_TABLE_NAME || ''].map(item => {
+                return DynamoDB.Converter.unmarshall(item) as IntegratorGroup;
+            });
+        }
+        return false
+    }
+}
+
 export const getWorkers = async(managerID: string): Promise<IUser[] | { error: string }> => {
     try {
         const getWorkersRequest = {
